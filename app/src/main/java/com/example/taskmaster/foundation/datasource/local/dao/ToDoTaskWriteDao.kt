@@ -1,0 +1,52 @@
+package com.example.taskmaster.foundation.datasource.local.dao
+
+import androidx.room.Dao
+import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.example.taskmaster.foundation.datasource.local.model.ToDoTaskDb
+import com.example.taskmaster.model.ToDoRepeat
+import com.example.taskmaster.model.ToDoStatus
+import java.time.LocalDateTime
+
+@Dao
+interface ToDoTaskWriteDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTask(data: List<ToDoTaskDb>)
+
+    @Delete
+    suspend fun deleteTask(data: List<ToDoTaskDb>)
+
+    @Query("DELETE FROM ToDoTaskDb WHERE task_id = :id")
+    suspend fun deleteTaskById(id: String)
+
+    @Query("UPDATE ToDoTaskDb SET task_name = :name, task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun updateTaskName(id: String, name: String, updatedAt: LocalDateTime)
+
+    @Query("UPDATE ToDoTaskDb SET task_dueDate = :dueDate, task_isDueDateTimeSet = :isDueDateTimeSet, task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun updateTaskDueDate(id: String, dueDate: LocalDateTime?, isDueDateTimeSet: Boolean, updatedAt: LocalDateTime)
+
+    @Query("UPDATE ToDoTaskDb SET task_dueDate = :dueDate, task_isDueDateTimeSet = :isDueDateTimeSet, task_repeat = :repeat, task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun resetTaskDueDate(id: String, dueDate: LocalDateTime?, isDueDateTimeSet: Boolean, repeat: ToDoRepeat, updatedAt: LocalDateTime)
+
+    @Query("UPDATE ToDoTaskDb SET task_status = :status, task_completedAt = :completedAt, task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun updateTaskStatus(id: String, status: ToDoStatus, completedAt: LocalDateTime?, updatedAt: LocalDateTime)
+
+    @Query("UPDATE ToDoTaskDb SET task_repeat = :repeat, task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun updateTaskRepeat(id: String, repeat: ToDoRepeat, updatedAt: LocalDateTime)
+
+    @Query("UPDATE ToDoTaskDb SET task_listId = :listId, task_updatedAt = :updatedAt WHERE task_id IN (:ids)")
+    suspend fun updateTaskList(ids: List<String>, listId: String, updatedAt: LocalDateTime)
+
+//    @Transaction
+//    suspend fun rearrangeTask(data: List<ToDoTaskDb>) {
+//        deleteTask(data)
+//        insertTask(data)
+//    }
+
+    @Query("UPDATE ToDoTaskDb SET task_note = :note, task_noteUpdatedAt = :updatedAt,task_updatedAt = :updatedAt WHERE task_id = :id")
+    suspend fun updateTaskNote(id: String, note: String, updatedAt: LocalDateTime)
+
+}

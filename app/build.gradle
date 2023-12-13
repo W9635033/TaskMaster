@@ -1,0 +1,198 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'com.squareup.wire'
+    id 'dagger.hilt.android.plugin'
+}
+
+ext.codeCoverage = [
+        enabled      : true,
+        fileBlackList: [
+        ],
+        fileWhiteList: [
+                // UI
+                '**/ui/*ViewModel*',
+                '**/ui/*State*',
+                // Data
+                // '**/data/*Environment*',
+                '**/foundation/datasource/local/*Read*',
+                '**/foundation/datasource/local/*Write*',
+                // '**/foundation/datasource/preference/PreferenceManager*',
+                // Core
+                '**/foundation/extension/*',
+        ]
+]
+
+android {
+    namespace 'com.example.taskmaster'
+
+    compileSdkVersion project.ext.compileSdkVersion
+    buildToolsVersion project.ext.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion project.ext.minSdkVersion
+        targetSdkVersion project.ext.targetSdkVersion
+        applicationId project.ext.appId
+        versionCode project.ext.versionCode
+        versionName project.ext.versionName
+
+        vectorDrawables {
+            useSupportLibrary true
+        }
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/room-schemas".toString()]
+            }
+        }
+    }
+
+    signingConfigs {
+        release {
+            Properties properties = new Properties()
+            properties.load(project.rootProject.file('keystore.properties').newDataInputStream())
+
+            storeFile file("${properties.getProperty('RELEASE_STORE_FILE')}")
+            storePassword "${properties.getProperty('RELEASE_STORE_PASSWORD')}"
+            keyAlias "${properties.getProperty('RELEASE_KEY_ALIAS')}"
+            keyPassword "${properties.getProperty('RELEASE_KEY_PASSWORD')}"
+        }
+    }
+
+    applicationVariants.all { variant ->
+        def variantName = variant.getName()
+        def debug = variantName.contains('debug')
+        def appName
+
+        if (debug) {
+            appName = app_name_debug
+        } else {
+            appName = app_name_release
+        }
+
+        variant.mergedFlavor.manifestPlaceholders = [
+                APP_NAME   : appName,
+        ]
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        benchmark {
+            initWith buildTypes.release
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+            proguardFiles("benchmark-rules.pro")
+        }
+        debug {
+            applicationIdSuffix ".debug"
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+
+        // Fix compose compile error
+        compose true
+    }
+
+    // Fix compose compile error
+    composeOptions {
+        kotlinCompilerExtensionVersion libs.versions.androidxComposeCompiler.get()
+    }
+
+    compileOptions {
+        coreLibraryDesugaringEnabled = true
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+wire {
+    kotlin {
+        android = true
+    }
+}
+
+dependencies {
+
+    ///////////////
+    // UI SUPPORT
+    //////
+
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.window
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.lifecycle.runtimeCompose
+    implementation libs.androidx.lifecycle.viewModelCompose
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.navigation.compose
+    implementation libs.androidx.hilt.navigation.compose
+    implementation libs.lottie.compose
+    implementation libs.google.material
+    implementation libs.wisnu.foundation.core.viewmodel
+
+    // Use for bottom sheet navigation
+    implementation libs.google.accompanist.navigation
+
+    implementation libs.google.accompanist.systemuicontroller
+
+    // Startup
+    implementation libs.androidx.startup
+    implementation libs.androidx.profileinstaller
+
+    // Compose
+    // For Compose runtime by default coroutine runtime already included from ui, foundation, implicitly
+    // Not able to get rid of material lib due to we still use these component and not available yet in material3
+    // androidx.compose.material.SwipeToDismiss
+    // androidx.compose.material.ModalBottomSheetLayout. https://github.com/google/accompanist/pull/1543 (DRAFT)
+    implementation libs.androidx.compose.material
+    implementation libs.androidx.compose.material3
+    implementation libs.androidx.compose.material.iconsCore
+    implementation libs.androidx.compose.material.iconsExtended
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.widget
+
+    // SQL
+    implementation libs.androidx.room.runtime
+    implementation libs.androidx.room.ktx
+    kapt libs.androidx.room.compiler
+
+    // Key-value
+    implementation libs.androidx.dataStore.core
+    implementation libs.google.protobuf
+
+    // Server
+    implementation libs.bundles.networking
+
+    // Concurrent processing
+    implementation libs.jetbrains.coroutines.android
+
+    // DI
+    implementation libs.google.hilt.android
+    kapt libs.google.hilt.compiler
+
+    // Date time
+    coreLibraryDesugaring(libs.android.desugarJdkLibs)
+    implementation libs.wisnu.foundation.core.datetime
+
+    implementation libs.debugging.compose.uiTooling
+}
+
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += '-Xopt-in=kotlin.RequiresOptIn'
+    }
+}
